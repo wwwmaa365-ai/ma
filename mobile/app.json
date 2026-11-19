@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Sanjit Shop Partner",
+    "slug": "sanjit-shop-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3B0764"
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#3B0764"
+    },
+    "android": {
+      "package": "in.sanjitmusical.shoppartner",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4C1D95"
+      },
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.VIBRATE"
+      ]
+    },
+    "extra": {
+      "brand": "SANJIT MUSICAL STORE",
+      "demoModeDefault": true
+    }
+  }
+}

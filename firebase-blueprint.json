@@ -1,0 +1,324 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Public profile for users without PII",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "tenantId", "createdAt"]
+    },
+    "UserPrivatePII": {
+      "title": "UserPrivatePII",
+      "description": "Isolated PII record for user email, phone, and address",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "phone", "address", "createdAt"]
+    },
+    "Tenant": {
+      "title": "Tenant",
+      "description": "White-label SaaS tenant store record",
+      "type": "object",
+      "properties": {
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "storeName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "customDomain": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 120
+        },
+        "primaryColor": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "accentColor": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "planId": {
+          "type": "string",
+          "enum": ["starter", "growth", "enterprise"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "active", "suspended"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "tenantId",
+        "ownerId",
+        "storeName",
+        "customDomain",
+        "primaryColor",
+        "accentColor",
+        "planId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Tenant-isolated product catalogue item",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "subcategory": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "priceInr": {
+          "type": "number"
+        },
+        "stock": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "productId",
+        "tenantId",
+        "ownerId",
+        "name",
+        "category",
+        "subcategory",
+        "priceInr",
+        "stock",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Tenant-isolated customer order",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "totalInr": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["RAZORPAY_UPI", "RAZORPAY_CARD", "NETBANKING", "COD"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["PENDING", "VERIFIED_PAID", "REFUNDED", "FAILED"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "tenantId",
+        "customerId",
+        "sellerOwnerId",
+        "totalInr",
+        "paymentMethod",
+        "paymentStatus",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Real-time customer-seller chat message",
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recipientId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "flagged": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "messageId",
+        "tenantId",
+        "senderId",
+        "recipientId",
+        "body",
+        "flagged",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserPublicProfile",
+      "description": "Public user profile records"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": "UserPrivatePII",
+      "description": "Isolated PII subcollection restricted to owner or platform admin"
+    },
+    "/tenants/{tenantId}": {
+      "schema": "Tenant",
+      "description": "Multi-tenant white-label store configuration and metadata"
+    },
+    "/tenants/{tenantId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Tenant-isolated product catalogue items"
+    },
+    "/tenants/{tenantId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Tenant-isolated customer orders"
+    },
+    "/tenants/{tenantId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Tenant-isolated customer-seller chat messages"
+    }
+  }
+}

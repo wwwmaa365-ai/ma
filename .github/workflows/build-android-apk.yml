@@ -1,0 +1,90 @@
+name: Build SANJIT SHOP PARTNER Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_variant:
+        description: 'Android build variant (release or debug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/build-android-apk.yml'
+
+jobs:
+  build-android-apk:
+    name: Build Installable Android APK (Expo + Gradle)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Expo & React Native dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Verify TypeScript compilation
+        run: npx tsc --noEmit
+
+      - name: Verify Expo Android configuration
+        run: npx expo config --type public
+
+      - name: Generate native Android project via Expo Prebuild
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Compile Android APK (Gradle)
+        working-directory: mobile/android
+        run: |
+          VARIANT="${{ inputs.build_variant || 'release' }}"
+          if [ "$VARIANT" = "debug" ]; then
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk ../SanjitShopPartner-v1.0.0-debug.apk
+          else
+            ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk ../SanjitShopPartner-v1.0.0-release.apk
+          fi
+
+      - name: Upload Installable Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanjit-shop-partner-android-apk
+          path: mobile/SanjitShopPartner-v1.0.0-*.apk
+          if-no-files-found: error
+          retention-days: 30

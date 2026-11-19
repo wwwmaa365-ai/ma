@@ -1,0 +1,361 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1 & Phase 4.1: Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'www.maa365@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Blueprint Validation Helpers (Pillar 2: Anti-Update-Gap)
+    function isValidUserPublicProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'tenantId', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'tenantId', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+        isValidId(data.tenantId) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidUserPrivatePII(data) {
+      return data.keys().hasAll(['uid', 'email', 'phone', 'address', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'phone', 'address', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 24 &&
+        data.address is string && data.address.size() >= 3 && data.address.size() <= 300 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidTenant(data) {
+      return data.keys().hasAll([
+          'tenantId', 'ownerId', 'storeName', 'customDomain',
+          'primaryColor', 'accentColor', 'planId', 'status',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'tenantId', 'ownerId', 'storeName', 'customDomain',
+          'primaryColor', 'accentColor', 'planId', 'status',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.ownerId) &&
+        data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 100 &&
+        data.customDomain is string && data.customDomain.size() >= 4 && data.customDomain.size() <= 120 &&
+        data.primaryColor is string && data.primaryColor.size() >= 4 && data.primaryColor.size() <= 20 &&
+        data.accentColor is string && data.accentColor.size() >= 4 && data.accentColor.size() <= 20 &&
+        data.planId in ['starter', 'growth', 'enterprise'] &&
+        data.status in ['pending', 'active', 'suspended'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'productId', 'tenantId', 'ownerId', 'name',
+          'category', 'subcategory', 'priceInr', 'stock',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'productId', 'tenantId', 'ownerId', 'name',
+          'category', 'subcategory', 'priceInr', 'stock',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.productId) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.ownerId) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 80 &&
+        data.subcategory is string && data.subcategory.size() >= 2 && data.subcategory.size() <= 80 &&
+        data.priceInr is number && data.priceInr >= 0 && data.priceInr <= 10000000 &&
+        data.stock is number && data.stock >= 0 && data.stock <= 100000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'orderId', 'tenantId', 'customerId', 'sellerOwnerId',
+          'totalInr', 'paymentMethod', 'paymentStatus', 'status',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'orderId', 'tenantId', 'customerId', 'sellerOwnerId',
+          'totalInr', 'paymentMethod', 'paymentStatus', 'status',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.orderId) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.customerId) &&
+        isValidId(data.sellerOwnerId) &&
+        data.totalInr is number && data.totalInr >= 0 && data.totalInr <= 10000000 &&
+        data.paymentMethod in ['RAZORPAY_UPI', 'RAZORPAY_CARD', 'NETBANKING', 'COD'] &&
+        data.paymentStatus in ['PENDING', 'VERIFIED_PAID', 'REFUNDED', 'FAILED'] &&
+        data.status in ['CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll([
+          'messageId', 'tenantId', 'senderId', 'recipientId',
+          'body', 'flagged', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'messageId', 'tenantId', 'senderId', 'recipientId',
+          'body', 'flagged', 'createdAt'
+        ]) &&
+        isValidId(data.messageId) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.senderId) &&
+        isValidId(data.recipientId) &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 1000 &&
+        data.flagged is bool &&
+        data.createdAt is timestamp;
+    }
+
+    // Trusted Admin Registry
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // Users Public Profile
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && existing().uid == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().uid == userId &&
+        incoming().createdAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidId(userId) &&
+        isValidUserPublicProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'tenantId']))
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+
+      // Pillar 6: PII Isolation Split Subcollection
+      match /private/{docId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin()) &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow list: if false;
+        allow create: if isSignedIn() &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          isOwner(userId) &&
+          isValidUserPrivatePII(incoming()) &&
+          incoming().uid == userId &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isSignedIn() &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          isValidUserPrivatePII(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          exists(/databases/$(database)/documents/users/$(userId)) && (
+            isAdmin() ||
+            (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'address']))
+          );
+        allow delete: if isAdmin() && isValidId(userId) && isValidId(docId);
+      }
+    }
+
+    // Tenants (Multi-Tenant Store Root)
+    match /tenants/{tenantId} {
+      allow get: if isValidId(tenantId) && (existing().status == 'active' || (isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin())));
+      allow list: if existing().status == 'active' || (isSignedIn() && existing().ownerId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        isValidId(tenantId) &&
+        isValidTenant(incoming()) &&
+        incoming().tenantId == tenantId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidId(tenantId) &&
+        isValidTenant(incoming()) &&
+        incoming().tenantId == existing().tenantId &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().ownerId == request.auth.uid &&
+            existing().status != 'suspended' &&
+            incoming().status == existing().status &&
+            incoming().planId == existing().planId &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['storeName', 'customDomain', 'primaryColor', 'accentColor', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(tenantId);
+
+      // Pillar 1: Master Gate Relational Sync for Tenant Products
+      match /products/{productId} {
+        allow get: if isValidId(tenantId) && isValidId(productId) &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.status == 'active';
+        allow list: if isValidId(tenantId) && existing().tenantId == tenantId && existing().stock >= 0;
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(productId) &&
+          isValidProduct(incoming()) &&
+          incoming().productId == productId &&
+          incoming().tenantId == tenantId &&
+          incoming().ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.status == 'active';
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(productId) &&
+          isValidProduct(incoming()) &&
+          incoming().productId == existing().productId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid && (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'subcategory', 'priceInr', 'stock', 'updatedAt']))
+          );
+        allow delete: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(productId) && (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid &&
+              get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid)
+          );
+      }
+
+      // Pillar 1 & 4: Tenant Orders with Terminal State Locking
+      match /orders/{orderId} {
+        allow get: if isSignedIn() && isValidId(tenantId) && isValidId(orderId) && (
+          existing().customerId == request.auth.uid ||
+          (existing().sellerOwnerId == request.auth.uid &&
+            get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid) ||
+          isAdmin()
+        );
+        allow list: if isSignedIn() && isValidId(tenantId) && existing().tenantId == tenantId && (
+          existing().customerId == request.auth.uid ||
+          existing().sellerOwnerId == request.auth.uid
+        );
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(orderId) &&
+          isValidOrder(incoming()) &&
+          incoming().orderId == orderId &&
+          incoming().tenantId == tenantId &&
+          incoming().customerId == request.auth.uid &&
+          incoming().status == 'CONFIRMED' &&
+          incoming().paymentStatus == 'PENDING' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == incoming().sellerOwnerId &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.status == 'active';
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(orderId) &&
+          isValidOrder(incoming()) &&
+          incoming().orderId == existing().orderId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().customerId == existing().customerId &&
+          incoming().sellerOwnerId == existing().sellerOwnerId &&
+          incoming().totalInr == existing().totalInr &&
+          incoming().paymentMethod == existing().paymentMethod &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            // Action 1: Customer cancels before shipping (Terminal State Lock)
+            (existing().customerId == request.auth.uid &&
+              existing().status == 'CONFIRMED' &&
+              incoming().status == 'CANCELLED' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+              exists(/databases/$(database)/documents/tenants/$(tenantId))) ||
+            // Action 2: Verified Seller advances non-terminal fulfillment state
+            (existing().sellerOwnerId == request.auth.uid &&
+              !(existing().status in ['DELIVERED', 'CANCELLED']) &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+              get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid)
+          );
+        allow delete: if isAdmin() && isValidId(tenantId) && isValidId(orderId);
+      }
+
+      // Tenant Customer-Seller Chat Messages
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(tenantId) && isValidId(messageId) && (
+          existing().senderId == request.auth.uid ||
+          existing().recipientId == request.auth.uid ||
+          isAdmin()
+        ) && exists(/databases/$(database)/documents/tenants/$(tenantId));
+        allow list: if isSignedIn() && isValidId(tenantId) && existing().tenantId == tenantId && (
+          existing().senderId == request.auth.uid ||
+          existing().recipientId == request.auth.uid
+        );
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(messageId) &&
+          isValidMessage(incoming()) &&
+          incoming().messageId == messageId &&
+          incoming().tenantId == tenantId &&
+          incoming().senderId == request.auth.uid &&
+          incoming().flagged == false &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/tenants/$(tenantId));
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(messageId) &&
+          isValidMessage(incoming()) &&
+          incoming().messageId == existing().messageId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().senderId == existing().senderId &&
+          incoming().recipientId == existing().recipientId &&
+          incoming().body == existing().body &&
+          incoming().createdAt == existing().createdAt &&
+          exists(/databases/$(database)/documents/tenants/$(tenantId)) && (
+            isAdmin() ||
+            (existing().recipientId == request.auth.uid &&
+              incoming().flagged == true &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['flagged']))
+          );
+        allow delete: if isAdmin() && isValidId(tenantId) && isValidId(messageId);
+      }
+    }
+  }
+}

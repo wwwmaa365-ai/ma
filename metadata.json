@@ -1,0 +1,6 @@
+{
+  "name": "Sanjit Musical Store – White-Label SaaS E-Commerce Platform",
+  "description": "Multi-tenant white-label SaaS e-commerce platform for musical instrument stores, pro audio sellers, and traditional dance costume boutiques with Master Admin, Seller Admin, Customer Storefront, Delivery Partner App, Staff Panel, and Expo EAS White-Label App Builder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
