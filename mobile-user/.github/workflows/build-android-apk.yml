@@ -1,0 +1,98 @@
+name: Build SANJIT MUSICAL STORE User App APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_variant:
+        description: 'Android build variant (release or debug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-user-apk:
+    name: Build Installable User App Android APK (Expo + Gradle)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configure Preinstalled Android SDK & Licenses
+        run: |
+          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "$SDK_DIR/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK_DIR/platform-tools" >> "$GITHUB_PATH"
+          SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+
+      - name: Install Expo & React Native dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Verify Expo native dependency alignment
+        run: CI=1 npx expo install --check
+
+      - name: Verify TypeScript compilation
+        run: npx tsc --noEmit
+
+      - name: Verify Expo Android configuration
+        run: npx expo config --type public
+
+      - name: Generate native Android project via Expo Prebuild
+        run: CI=1 npx expo prebuild --platform android --clean
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-user-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-user-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Compile User App Android APK (Gradle)
+        working-directory: android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
+        run: |
+          VARIANT="${{ github.event.inputs.build_variant || 'release' }}"
+          if [ "$VARIANT" = "debug" ]; then
+            ./gradlew assembleDebug --no-daemon --stacktrace
+            cp app/build/outputs/apk/debug/app-debug.apk ../SanjitMusicalStore-UserApp-v1.0.0-debug.apk
+          else
+            ./gradlew assembleRelease --no-daemon --stacktrace
+            cp app/build/outputs/apk/release/app-release.apk ../SanjitMusicalStore-UserApp-v1.0.0-release.apk
+          fi
+
+      - name: Upload Installable User App Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanjit-musical-store-user-app-apk
+          path: SanjitMusicalStore-UserApp-v1.0.0-*.apk
+          if-no-files-found: error
+          retention-days: 30

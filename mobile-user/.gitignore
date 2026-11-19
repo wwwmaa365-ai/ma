@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+android/
+ios/
+dist/
+*.apk
+*.aab
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.DS_Store
+npm-debug.*
+yarn-debug.*
+yarn-error.*

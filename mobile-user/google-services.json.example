@@ -1,0 +1,30 @@
+{
+  "_comment": "Replace this file with your real google-services.json downloaded from Firebase Console (Project gen-lang-client-0023810059 -> Project Settings -> Add App -> Android -> com.sanjitmusical.store) and rename it to google-services.json before building a production FCM APK.",
+  "project_info": {
+    "project_number": "786637158756",
+    "project_id": "gen-lang-client-0023810059",
+    "storage_bucket": "gen-lang-client-0023810059.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:786637158756:android:REPLACE_WITH_USER_APP_ANDROID_ID",
+        "android_client_info": {
+          "package_name": "com.sanjitmusical.store"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_ANDROID_FIREBASE_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

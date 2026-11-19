@@ -1359,6 +1359,24 @@ async function startServer() {
     res.sendFile(zipFilePath);
   });
 
+  // 19b. Direct Download Endpoint for Customer User App React Native + Expo Android Source ZIP
+  app.get('/api/v1/download/user-app-android-zip', (_req: Request, res: Response) => {
+    const zipFilePath = path.resolve(
+      __dirname,
+      'public/downloads/sanjit-musical-user-app-expo-android.zip'
+    );
+    if (!fs.existsSync(zipFilePath)) {
+      res.status(404).json({ error: 'Customer User App Expo Android archive not found.' });
+      return;
+    }
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="sanjit-musical-user-app-expo-android.zip"'
+    );
+    res.sendFile(zipFilePath);
+  });
+
   // Vite Dev Server or Static Production Bundle
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

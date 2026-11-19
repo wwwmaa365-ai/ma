@@ -993,7 +993,7 @@ export default function App() {
                     </div>
                   </View>
 
-                  {/* Direct Download Complete React Native + Expo Android ZIP */}
+                  {/* Direct Download Complete React Native + Expo Android ZIPs */}
                   <a
                     href="/api/v1/download/expo-android-zip"
                     download="sanjit-shop-partner-expo-android.zip"
@@ -1001,9 +1001,21 @@ export default function App() {
                   >
                     <span className="flex flex-row items-center gap-2 min-w-0">
                       <Download className="w-4 h-4 shrink-0" />
-                      <span className="truncate">Download Complete Expo Android Source (.ZIP)</span>
+                      <span className="truncate">Download Partner App Android Source (.ZIP)</span>
                     </span>
-                    <span className="font-mono-tabular text-[10px] shrink-0">30 Files + CI</span>
+                    <span className="font-mono-tabular text-[10px] shrink-0">Partner + APK CI</span>
+                  </a>
+
+                  <a
+                    href="/api/v1/download/user-app-android-zip"
+                    download="sanjit-musical-user-app-expo-android.zip"
+                    className="w-full min-h-[50px] px-4 py-3 rounded-2xl bg-purple-900 hover:bg-purple-800 text-white font-extrabold text-xs flex flex-row items-center justify-between gap-2 shadow-sm active:scale-[0.99] transition-transform"
+                  >
+                    <span className="flex flex-row items-center gap-2 min-w-0">
+                      <Download className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span className="truncate">Download User App Android Source (.ZIP)</span>
+                    </span>
+                    <span className="font-mono-tabular text-[10px] text-amber-300 shrink-0">Customer + APK CI</span>
                   </a>
 
                   {/* Auth Flow & All-22-Screen Quick Access Card */}
