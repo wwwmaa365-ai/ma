@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePartnerStore } from '../context/PartnerStoreContext';
 import { DemoModeBanner, PrimaryButton } from '../components/DemoBanner';
+import { UpiQrPaymentSection } from '../components/UpiQrPaymentSection';
 import { COLORS, RADIUS, rs, SPACING } from '../theme/theme';
 import { OrderStatus } from '../types';
 
@@ -129,7 +130,7 @@ export const OrderDetailsScreen: React.FC<{ navigation: any; route: any }> = ({
   navigation,
   route,
 }) => {
-  const { orders, updateOrderStatus } = usePartnerStore();
+  const { orders, shopProfile, updateOrderStatus, recordUpiQrPayment } = usePartnerStore();
   const order = orders.find((o) => o.id === route.params?.orderId) || orders[0];
 
   const nextActionMap: Record<OrderStatus, { label: string; next: OrderStatus } | null> = {
@@ -205,6 +206,13 @@ export const OrderDetailsScreen: React.FC<{ navigation: any; route: any }> = ({
             <Text style={styles.amount}>₹{order.netEarningInr.toLocaleString('en-IN')}</Text>
           </View>
         </View>
+
+        <UpiQrPaymentSection
+          order={order}
+          shopName={shopProfile.shopName}
+          defaultUpiId={shopProfile.upiId}
+          onConfirmUpiPayment={recordUpiQrPayment}
+        />
 
         {nextStep ? (
           <PrimaryButton

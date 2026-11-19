@@ -293,6 +293,235 @@
         "flagged",
         "createdAt"
       ]
+    },
+    "DeviceFcmToken": {
+      "title": "DeviceFcmToken",
+      "description": "Registered Android/iOS/Web Firebase Cloud Messaging (FCM) push token for a seller device",
+      "type": "object",
+      "properties": {
+        "tokenId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fcmToken": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 512
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["android", "ios", "web"]
+        },
+        "deviceName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "channels": {
+          "type": "array",
+          "description": "Subscribed Android FCM notification channels (max 5)"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "tokenId",
+        "uid",
+        "tenantId",
+        "fcmToken",
+        "platform",
+        "deviceName",
+        "channels",
+        "enabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SellerNotification": {
+      "title": "SellerNotification",
+      "description": "Real-time FCM seller alert record for new orders, order status updates, and low-stock warnings",
+      "type": "object",
+      "properties": {
+        "notificationId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recipientUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["NEW_ORDER", "ORDER_STATUS", "LOW_STOCK"]
+        },
+        "channelId": {
+          "type": "string",
+          "enum": ["order-alerts", "order-status", "low-stock"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "body": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 400
+        },
+        "referenceId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["HIGH", "DEFAULT"]
+        },
+        "read": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "notificationId",
+        "tenantId",
+        "recipientUid",
+        "type",
+        "channelId",
+        "title",
+        "body",
+        "referenceId",
+        "priority",
+        "read",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CustomerReview": {
+      "title": "CustomerReview",
+      "description": "Customer review for a partner store or product with seller reply thread",
+      "type": "object",
+      "properties": {
+        "reviewId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["STORE", "PRODUCT"]
+        },
+        "productId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "orderRef": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "sellerReply": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING_REPLY", "REPLIED"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "reviewId",
+        "tenantId",
+        "sellerOwnerId",
+        "customerId",
+        "customerName",
+        "scope",
+        "productId",
+        "productName",
+        "orderRef",
+        "rating",
+        "comment",
+        "sellerReply",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -303,6 +532,10 @@
     "/users/{userId}/private/{docId}": {
       "schema": "UserPrivatePII",
       "description": "Isolated PII subcollection restricted to owner or platform admin"
+    },
+    "/users/{userId}/fcmTokens/{tokenId}": {
+      "schema": "DeviceFcmToken",
+      "description": "Owner-isolated FCM device push token registrations for Android, iOS, and Web"
     },
     "/tenants/{tenantId}": {
       "schema": "Tenant",
@@ -319,6 +552,14 @@
     "/tenants/{tenantId}/messages/{messageId}": {
       "schema": "Message",
       "description": "Tenant-isolated customer-seller chat messages"
+    },
+    "/tenants/{tenantId}/notifications/{notificationId}": {
+      "schema": "SellerNotification",
+      "description": "Tenant-isolated real-time FCM seller alerts for orders, status changes, and low-stock warnings"
+    },
+    "/tenants/{tenantId}/reviews/{reviewId}": {
+      "schema": "CustomerReview",
+      "description": "Tenant-isolated store and product customer reviews with verified seller responses"
     }
   }
 }

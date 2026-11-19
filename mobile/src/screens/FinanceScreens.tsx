@@ -14,11 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePartnerStore } from '../context/PartnerStoreContext';
 import { DEMO_SALES_SERIES } from '../data/demoData';
 import { DemoModeBanner, PrimaryButton } from '../components/DemoBanner';
+import { EarningsChartsSection } from '../components/EarningsChartsSection';
 import { COLORS, RADIUS, rs, SPACING } from '../theme/theme';
 
 /** Screen 14: Earnings Hub (Earnings Tab) */
 export const EarningsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { orders, withdrawals, shopProfile, plans } = usePartnerStore();
+  const { orders, products, withdrawals, shopProfile, plans } = usePartnerStore();
   const activePlan = plans.find((p) => p.id === shopProfile.activePlanId) || plans[1];
 
   const gross = orders
@@ -55,6 +56,8 @@ export const EarningsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           </View>
         </View>
 
+        <EarningsChartsSection orders={orders} products={products} />
+
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Finance & Subscription Screens</Text>
           <PrimaryButton
@@ -89,32 +92,21 @@ export const EarningsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
 /** Screen 13: Sales Reports Screen */
 export const SalesReportsScreen: React.FC = () => {
-  const maxSales = Math.max(...DEMO_SALES_SERIES.map((d) => d.salesInr), 1);
+  const { orders, products } = usePartnerStore();
   const totalWeek = DEMO_SALES_SERIES.reduce((sum, d) => sum + d.salesInr, 0);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollBody}>
         <DemoModeBanner />
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>7-Day Demo Sales Performance</Text>
-          <Text style={styles.bigMetric}>₹{totalWeek.toLocaleString('en-IN')}</Text>
-          <Text style={styles.meta}>Top Category: Electronic Musical Equipment & Dance Dresses</Text>
-
-          <View style={styles.chartRow}>
-            {DEMO_SALES_SERIES.map((bar) => {
-              const heightPct = Math.max(14, Math.round((bar.salesInr / maxSales) * 100));
-              return (
-                <View key={bar.label} style={styles.chartCol}>
-                  <View style={styles.barTrack}>
-                    <View style={[styles.barFill, { height: `${heightPct}%` }]} />
-                  </View>
-                  <Text style={styles.barLabel}>{bar.label}</Text>
-                </View>
-              );
-            })}
-          </View>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroOverline}>7-DAY DEMO GROSS REVENUE</Text>
+          <Text style={styles.heroAmount}>₹{totalWeek.toLocaleString('en-IN')}</Text>
+          <Text style={styles.heroSub}>
+            Interactive Victory Native charts powered by react-native-svg
+          </Text>
         </View>
+        <EarningsChartsSection orders={orders} products={products} />
       </ScrollView>
     </SafeAreaView>
   );

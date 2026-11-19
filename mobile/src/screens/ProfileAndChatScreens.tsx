@@ -79,7 +79,7 @@ export const CustomerChatScreen: React.FC = () => {
 
 /** Screen 21: Shop Profile Screen (Profile Tab) */
 export const ShopProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { shopProfile, updateShopProfile, logoutDemo } = usePartnerStore();
+  const { shopProfile, updateShopProfile, logoutDemo, pendingReviewCount } = usePartnerStore();
   const [shopName, setShopName] = useState(shopProfile.shopName);
   const [city, setCity] = useState(shopProfile.city);
   const [upiId, setUpiId] = useState(shopProfile.upiId);
@@ -114,6 +114,22 @@ export const ShopProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Partner Shortcuts</Text>
+            <PrimaryButton
+              title="FCM Push Alerts & Channels"
+              variant="gold"
+              icon="notifications-outline"
+              onPress={() => navigation.navigate('Notifications')}
+            />
+            <PrimaryButton
+              title={
+                pendingReviewCount > 0
+                  ? `Customer Feedback (${pendingReviewCount} pending)`
+                  : 'Customer Feedback & Reviews'
+              }
+              variant="outline"
+              icon="star-outline"
+              onPress={() => navigation.navigate('CustomerFeedback')}
+            />
             <PrimaryButton
               title="Customer Chat"
               variant="outline"
@@ -176,12 +192,17 @@ export const SettingsScreen: React.FC = () => {
   }[] = [
     {
       key: 'pushOrderAlerts',
-      label: 'Push Order Alerts',
-      desc: 'Instant sound & vibration for new customer orders',
+      label: 'FCM New Order Alerts',
+      desc: 'Instant sound & vibration on Android channel order-alerts',
+    },
+    {
+      key: 'orderStatusAlerts',
+      label: 'FCM Order Status Updates',
+      desc: 'Real-time alerts when orders are accepted, packed, shipped, or delivered',
     },
     {
       key: 'lowStockAlerts',
-      label: 'Low Stock Warnings',
+      label: 'FCM Low Stock Warnings',
       desc: 'Notify when instruments or dance dresses drop below threshold',
     },
     {

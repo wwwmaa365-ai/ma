@@ -20,6 +20,7 @@ import {
   FlatList,
   TouchableOpacity,
 } from '../rn/ReactNativePrimitives.tsx';
+import { PartnerUpiQrGateway } from './PartnerUpiQrGateway.tsx';
 
 export type OrderSubView =
   | { type: 'LIST' }
@@ -30,9 +31,12 @@ export type OrderSubView =
 export interface PartnerOrdersModuleProps {
   orders: DemoOrder[];
   customers: DemoCustomer[];
+  shopName: string;
+  shopUpiId: string;
   subView: OrderSubView;
   onSetSubView: (view: OrderSubView) => void;
   onUpdateOrderStatus: (orderId: string, status: DemoOrderStatus, note?: string) => void;
+  onConfirmUpiPayment: (orderId: string, utr: string, vpaUsed: string) => void;
   onOpenChat: () => void;
 }
 
@@ -49,9 +53,12 @@ const FILTERS: ('ALL' | DemoOrderStatus)[] = [
 export const PartnerOrdersModule: React.FC<PartnerOrdersModuleProps> = ({
   orders,
   customers,
+  shopName,
+  shopUpiId,
   subView,
   onSetSubView,
   onUpdateOrderStatus,
+  onConfirmUpiPayment,
   onOpenChat,
 }) => {
   const [statusFilter, setStatusFilter] = useState<'ALL' | DemoOrderStatus>('ALL');
@@ -328,6 +335,13 @@ export const PartnerOrdersModule: React.FC<PartnerOrdersModuleProps> = ({
             </div>
           </div>
         </View>
+
+        <PartnerUpiQrGateway
+          order={order}
+          shopName={shopName}
+          defaultUpiId={shopUpiId}
+          onConfirmUpiPayment={onConfirmUpiPayment}
+        />
 
         {nextStep && (
           <TouchableOpacity

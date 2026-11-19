@@ -33,3 +33,13 @@
     Authenticated user executing unfiltered `list` on `/tenants/tenant_abc/orders` where `customerId != request.auth.uid` and `sellerOwnerId != request.auth.uid`.
 12. **Chat Message Impersonation**:
     Creating `/tenants/tenant_abc/messages/msg_1` where `senderId` is set to another user's UID.
+13. **FCM Token Hijacking (Cross-User Token Injection)**:
+    Authenticated user `attacker_uid` attempting to write or read `/users/victim_uid/fcmTokens/tok_1` or supplying an unbounded `channels` array (`size() > 5`).
+14. **Notification Read-State Tampering & Cross-Tenant Alert Spoofing**:
+    Authenticated seller attempting to inject a shadow field (`isSystemOverride: true`) or revert an already-read notification (`read: true` -> `read: false`) in `/tenants/tenant_abc/notifications/notif_1`.
+15. **Seller Review Rating / Comment Tampering**:
+    Authenticated seller attempting to modify a customer's original `rating` (e.g., from `3` to `5`) or `comment` while submitting `sellerReply` on `/tenants/tenant_abc/reviews/rev_1`.
+16. **Cross-Tenant Review Reply Hijacking & Oversized Payload**:
+    Authenticated non-owner seller attempting to reply to `/tenants/tenant_abc/reviews/rev_1` or submitting a 2KB `sellerReply` (> 1000 chars) or out-of-range rating (`rating: 9`).
+
+

@@ -57,7 +57,11 @@ export interface PartnerOrder {
   subtotalInr: number;
   platformCommissionInr: number;
   netEarningInr: number;
-  paymentMethod: 'Demo UPI' | 'Demo Card' | 'Cash on Delivery';
+  paymentMethod: 'Demo UPI' | 'Demo Card' | 'Cash on Delivery' | 'In-Store UPI QR';
+  upiPaymentStatus?: 'PENDING' | 'PAID_UPI_QR';
+  upiUtr?: string;
+  upiPaidAt?: string;
+  upiVpaUsed?: string;
   status: OrderStatus;
   deliveryOtp: string;
   courierName: string;
@@ -135,10 +139,63 @@ export interface ShopProfileData {
   demoMode: boolean;
 }
 
+export type FcmChannelId = 'order-alerts' | 'order-status' | 'low-stock';
+
+export type PartnerNotificationType = 'NEW_ORDER' | 'ORDER_STATUS' | 'LOW_STOCK';
+
+export type FcmPermissionStatus = 'granted' | 'denied' | 'undetermined' | 'demo';
+
+export interface PartnerNotificationItem {
+  id: string;
+  type: PartnerNotificationType;
+  channelId: FcmChannelId;
+  title: string;
+  body: string;
+  referenceId: string;
+  priority: 'HIGH' | 'DEFAULT';
+  read: boolean;
+  timestamp: string;
+  source: 'FCM_LIVE' | 'DEMO_FCM';
+}
+
+export interface FcmRegistrationState {
+  permissionStatus: FcmPermissionStatus;
+  fcmToken: string | null;
+  deviceName: string;
+  isLiveFcm: boolean;
+  firestoreSynced: boolean;
+  lastSyncedAt: string | null;
+  channels: FcmChannelId[];
+}
+
 export interface PartnerSettingsData {
   pushOrderAlerts: boolean;
+  orderStatusAlerts: boolean;
   lowStockAlerts: boolean;
   codEnabled: boolean;
   autoAcceptOrders: boolean;
   vacationMode: boolean;
+}
+
+export type ReviewScope = 'STORE' | 'PRODUCT';
+
+export type ReviewStatus = 'PENDING_REPLY' | 'REPLIED';
+
+export interface CustomerReviewItem {
+  id: string;
+  scope: ReviewScope;
+  productId: string;
+  productName: string;
+  orderRef: string;
+  customerId: string;
+  customerName: string;
+  customerCity: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  sellerReply?: string;
+  sellerRepliedAt?: string;
+  status: ReviewStatus;
+  verifiedPurchase: boolean;
+  source: 'FIRESTORE_LIVE' | 'DEMO_LOCAL';
 }

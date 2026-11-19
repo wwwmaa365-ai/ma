@@ -27,12 +27,30 @@
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#4C1D95",
+          "defaultChannel": "order-alerts"
+        }
+      ]
+    ],
     "extra": {
       "brand": "SANJIT MUSICAL STORE",
-      "demoModeDefault": true
+      "demoModeDefault": true,
+      "fcmSenderId": "786637158756",
+      "fcmChannels": [
+        "order-alerts",
+        "order-status",
+        "low-stock"
+      ]
     }
   }
 }

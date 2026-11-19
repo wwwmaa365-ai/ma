@@ -21,7 +21,7 @@ import { PartnerProduct, ProductCategory } from '../types';
 
 /** Screen 5: Seller Dashboard (Home Tab) */
 export const SellerDashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { shopProfile, products, orders, plans } = usePartnerStore();
+  const { shopProfile, products, orders, plans, pendingReviewCount } = usePartnerStore();
   const activePlan = plans.find((p) => p.id === shopProfile.activePlanId) || plans[1];
 
   const grossSales = orders
@@ -142,6 +142,16 @@ export const SellerDashboardScreen: React.FC<{ navigation: any }> = ({ navigatio
               />
             </View>
           </View>
+          <PrimaryButton
+            title={
+              pendingReviewCount > 0
+                ? `Customer Feedback (${pendingReviewCount} awaiting reply)`
+                : 'Customer Feedback & Reviews'
+            }
+            variant="outline"
+            icon="star-half-outline"
+            onPress={() => navigation.navigate('CustomerFeedback')}
+          />
         </View>
 
         {/* Recent Orders List */}

@@ -12,6 +12,8 @@ import {
   Terminal,
   UserCheck,
   Download,
+  Bell,
+  Star,
 } from 'lucide-react';
 import {
   DemoChatMessage,
@@ -29,6 +31,8 @@ import {
 
 export type ProfileSubScreen =
   | 'PROFILE'
+  | 'NOTIFICATIONS'
+  | 'FEEDBACK'
   | 'CHAT'
   | 'DELIVERY'
   | 'SETTINGS'
@@ -41,6 +45,7 @@ export interface PartnerProfileScreensProps {
   settings: DemoPartnerSettings;
   orders: DemoOrder[];
   messages: DemoChatMessage[];
+  pendingReviewCount: number;
   onUpdateProfile: (updates: Partial<DemoShopProfile>) => void;
   onUpdateSettings: (updates: Partial<DemoPartnerSettings>) => void;
   onSendChat: (text: string) => void;
@@ -60,6 +65,7 @@ export const PartnerProfileScreens: React.FC<PartnerProfileScreensProps> = ({
   settings,
   orders,
   messages,
+  pendingReviewCount,
   onUpdateProfile,
   onUpdateSettings,
   onSendChat,
@@ -217,13 +223,18 @@ export const PartnerProfileScreens: React.FC<PartnerProfileScreensProps> = ({
     }[] = [
       {
         key: 'pushOrderAlerts',
-        label: 'Push Order Alerts',
-        desc: 'Instant sound & vibration for new customer orders',
+        label: 'FCM New Order Alerts',
+        desc: 'Instant sound & vibration on Android channel #order-alerts',
+      },
+      {
+        key: 'orderStatusAlerts',
+        label: 'FCM Order Status Updates',
+        desc: 'Real-time alerts on #order-status when orders advance',
       },
       {
         key: 'lowStockAlerts',
-        label: 'Low Stock Warnings',
-        desc: 'Alert when instruments or costumes drop below threshold',
+        label: 'FCM Low Stock Warnings',
+        desc: 'Alert on #low-stock when instruments or costumes drop below threshold',
       },
       {
         key: 'codEnabled',
@@ -327,7 +338,7 @@ export const PartnerProfileScreens: React.FC<PartnerProfileScreensProps> = ({
             </span>
           </div>
           <span className="text-xs text-purple-100 leading-relaxed">
-            Includes <strong className="text-amber-300">30 verified project files</strong>: package.json, App.tsx, app.json, eas.json, tsconfig.json, PNG icons/splash, all 22 screens in src/, and <strong className="text-amber-300">.github/workflows/build-android-apk.yml</strong> for automated GitHub Actions APK generation.
+            Includes <strong className="text-amber-300">Expo SDK 52 + FCM Push Notifications</strong>: package.json, App.tsx, app.json, eas.json, tsconfig.json, Android FCM service &amp; channels, google-services.json.example, all 23 screens in src/, and automated GitHub Actions APK workflows.
           </span>
 
           <a
@@ -348,11 +359,12 @@ export const PartnerProfileScreens: React.FC<PartnerProfileScreensProps> = ({
             </span>
           </div>
           <span className="text-xs text-purple-100 leading-relaxed">
-            Push to GitHub → open <strong>Actions</strong> → run <strong>Build SANJIT SHOP PARTNER Android APK</strong> (zero secrets needed) → download <strong>SanjitShopPartner-v1.0.0-release.apk</strong> from Artifacts.
+            Push to GitHub → open <strong>Actions</strong> → run <strong>Build SANJIT SHOP PARTNER Android APK</strong> (zero secrets needed) or <strong>EAS Build Android APK</strong> (using <code>EXPO_TOKEN</code>).
           </span>
           <div className="p-3 rounded-xl bg-slate-950/90 text-amber-200 font-mono-tabular text-[11px] leading-relaxed flex flex-col gap-1 overflow-x-auto">
             <span>.github/workflows/build-android-apk.yml  (Zero-secret Gradle APK)</span>
-            <span>.github/workflows/eas-android-apk.yml    (Expo EAS via EXPO_TOKEN)</span>
+            <span>.github/workflows/eas-build.yml          (Auto Expo EAS on push)</span>
+            <span>FCM Channels: order-alerts · order-status · low-stock</span>
             <span>Package: in.sanjitmusical.shoppartner · v1.0.0</span>
           </div>
         </View>
@@ -380,6 +392,21 @@ export const PartnerProfileScreens: React.FC<PartnerProfileScreensProps> = ({
         {/* Native Navigation Tap List */}
         <View className="w-full bg-white dark:bg-[#1E1136] rounded-2xl border border-purple-100 dark:border-purple-900/60 divide-y divide-purple-100 dark:divide-purple-900/50 overflow-hidden">
           {[
+            {
+              id: 'NOTIFICATIONS' as const,
+              title: 'FCM Push Alerts & Channels',
+              sub: 'Order alerts, status updates & low-stock notifications',
+              icon: <Bell className="w-5 h-5" />,
+            },
+            {
+              id: 'FEEDBACK' as const,
+              title: 'Customer Feedback & Reviews',
+              sub:
+                pendingReviewCount > 0
+                  ? `${pendingReviewCount} store & product reviews awaiting reply`
+                  : 'All store & product reviews replied',
+              icon: <Star className="w-5 h-5" />,
+            },
             {
               id: 'CHAT' as const,
               title: 'Customer Chat',

@@ -17,10 +17,14 @@ import {
   Info,
   Smartphone,
   Download,
+  Bell,
+  Star,
 } from 'lucide-react';
 import {
   CATEGORY_IMAGE_FALLBACK,
   DemoChatMessage,
+  DemoCustomerReview,
+  DemoNotificationItem,
   DemoOrder,
   DemoOrderStatus,
   DemoPartnerProduct,
@@ -30,10 +34,12 @@ import {
   DemoWithdrawalRequest,
   INITIAL_DEMO_CHAT,
   INITIAL_DEMO_CUSTOMERS,
+  INITIAL_DEMO_NOTIFICATIONS,
   INITIAL_DEMO_ORDERS,
   INITIAL_DEMO_PLANS,
   INITIAL_DEMO_PRODUCTS,
   INITIAL_DEMO_PROFILE,
+  INITIAL_DEMO_REVIEWS,
   INITIAL_DEMO_SUB_PAYMENTS,
   INITIAL_DEMO_WITHDRAWALS,
   APP_ICON_URL,
@@ -68,6 +74,15 @@ import {
   PartnerProfileScreens,
   ProfileSubScreen,
 } from './components/mobile/PartnerProfileScreens.tsx';
+import {
+  FcmHeadsUpBanner,
+  PartnerNotificationCenter,
+} from './components/mobile/PartnerNotificationCenter.tsx';
+import { PartnerCustomerFeedback } from './components/mobile/PartnerCustomerFeedback.tsx';
+import {
+  publishSellerReviewReplyIfAuthenticated,
+  syncDeviceFcmTokenIfAuthenticated,
+} from './services/firebaseClient.ts';
 
 export type BottomTabId = 'HOME' | 'ORDERS' | 'PRODUCTS' | 'EARNINGS' | 'PROFILE';
 
@@ -104,19 +119,137 @@ export default function App() {
     INITIAL_DEMO_WITHDRAWALS
   );
   const [messages, setMessages] = useState<DemoChatMessage[]>(INITIAL_DEMO_CHAT);
+  const [reviews, setReviews] = useState<DemoCustomerReview[]>(INITIAL_DEMO_REVIEWS);
   const [settings, setSettings] = useState<DemoPartnerSettings>({
     pushOrderAlerts: true,
+    orderStatusAlerts: true,
     lowStockAlerts: true,
     codEnabled: true,
     autoAcceptOrders: false,
     vacationMode: false,
   });
 
+  // Real-Time FCM Push Alerts State
+  const [notifications, setNotifications] = useState<DemoNotificationItem[]>(
+    INITIAL_DEMO_NOTIFICATIONS
+  );
+  const [activeBanner, setActiveBanner] = useState<DemoNotificationItem | null>(null);
+  const [fcmToken, setFcmToken] = useState<string>(
+    'fcm_android_786637158756:APA91bSanjitPartnerLiveToken94x2'
+  );
+  const [fcmSyncedAt, setFcmSyncedAt] = useState<string>('Just now');
+
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) root.classList.add('dark');
     else root.classList.remove('dark');
   }, [isDark]);
+
+  useEffect(() => {
+    if (!activeBanner) return;
+    const t = setTimeout(() => setActiveBanner(null), 5000);
+    return () => clearTimeout(t);
+  }, [activeBanner]);
+
+  const emitFcmAlert = (item: DemoNotificationItem) => {
+    setNotifications((prev) => [item, ...prev].slice(0, 40));
+    setActiveBanner(item);
+  };
+
+  const handleRefreshFcmToken = () => {
+    const suffix = Math.random().toString(36).slice(2, 10);
+    const nextToken = `fcm_android_786637158756:APA91bSanjitPartner_${suffix}`;
+    setFcmToken(nextToken);
+    setFcmSyncedAt(
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    );
+    const activeChannels: string[] = [];
+    if (settings.pushOrderAlerts) activeChannels.push('order-alerts');
+    if (settings.orderStatusAlerts) activeChannels.push('order-status');
+    if (settings.lowStockAlerts) activeChannels.push('low-stock');
+    void syncDeviceFcmTokenIfAuthenticated({
+      tenantId: 'sanjit_musical_guwahati',
+      fcmToken: nextToken,
+      channels: activeChannels.length > 0 ? activeChannels : ['order-alerts'],
+      enabled: true,
+    }).catch(() => {});
+  };
+
+  const handleOpenNotification = (item: DemoNotificationItem) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+    );
+    setActiveBanner(null);
+    if (item.type === 'LOW_STOCK') {
+      setActiveTab('PRODUCTS');
+      setProductSubView({ type: 'INVENTORY' });
+    } else {
+      setActiveTab('ORDERS');
+      setOrderSubView({ type: 'DETAILS', orderId: item.referenceId });
+    }
+  };
+
+  const handleSimulateNewOrderFcm = () => {
+    if (!settings.pushOrderAlerts) return;
+    const picked = products[Math.floor(Math.random() * Math.min(products.length, 6))] || products[0];
+    if (!picked) return;
+    const orderNum = Math.floor(1100 + Math.random() * 8800);
+    const orderId = `ORD-${orderNum}`;
+    const commissionInr = Math.round((picked.priceInr * activePlan.commissionPercent) / 100);
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newOrd: DemoOrder = {
+      id: orderId,
+      invoiceNo: `INV-SMS-${orderNum}`,
+      customerId: 'cust_01',
+      customerName: 'Pranjal Medhi',
+      customerPhone: '+91 97062 44210',
+      customerEmail: 'pranjal.medhi@example.in',
+      address: '21 Zoo Road, Near Shraddhanjali Kanan',
+      city: 'Guwahati',
+      pincode: '781024',
+      items: [
+        {
+          productId: picked.id,
+          name: picked.name,
+          qty: 1,
+          unitPriceInr: picked.priceInr,
+        },
+      ],
+      subtotalInr: picked.priceInr,
+      commissionInr,
+      netEarningInr: picked.priceInr - commissionInr,
+      paymentMethod: 'Demo UPI',
+      status: settings.autoAcceptOrders ? 'ACCEPTED' : 'NEW',
+      deliveryOtp: String(Math.floor(1000 + Math.random() * 9000)),
+      courierName: 'Sanjit Own Rider',
+      awbCode: `AWB-${Math.floor(100000 + Math.random() * 900000)}`,
+      riderName: 'Bikram Das',
+      riderPhone: '+91 98641 22019',
+      createdAt: `Today, ${time}`,
+      trackingHistory: [
+        {
+          status: settings.autoAcceptOrders ? 'ACCEPTED' : 'NEW',
+          location: shopProfile.city,
+          timestamp: `Today, ${time}`,
+          note: 'Incoming order received via real-time FCM alert (Demo)',
+        },
+      ],
+    };
+
+    setOrders((prev) => [newOrd, ...prev]);
+    emitFcmAlert({
+      id: `notif_new_${Date.now()}`,
+      type: 'NEW_ORDER',
+      channelId: 'order-alerts',
+      title: `New Order #${orderId} · ₹${picked.priceInr.toLocaleString('en-IN')}`,
+      body: `Pranjal Medhi ordered 1× ${picked.name}. Tap to review & accept.`,
+      referenceId: orderId,
+      priority: 'HIGH',
+      read: false,
+      timestamp: time,
+    });
+  };
 
   const activePlan =
     plans.find((p) => p.id === shopProfile.activePlanId) || plans[1];
@@ -132,6 +265,20 @@ export default function App() {
       imageUrl: CATEGORY_IMAGE_FALLBACK[payload.category],
     };
     setProducts((prev) => [newItem, ...prev]);
+    if (settings.lowStockAlerts && newItem.stock <= newItem.lowStockThreshold) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      emitFcmAlert({
+        id: `notif_add_low_${Date.now()}`,
+        type: 'LOW_STOCK',
+        channelId: 'low-stock',
+        title: `Low Stock Alert · ${newItem.name}`,
+        body: `Added with ${newItem.stock} units in stock (threshold: ${newItem.lowStockThreshold}).`,
+        referenceId: newItem.id,
+        priority: 'HIGH',
+        read: false,
+        timestamp: time,
+      });
+    }
   };
 
   const handleUpdateProduct = (
@@ -148,9 +295,28 @@ export default function App() {
   };
 
   const handleUpdateStock = (id: string, stock: number) => {
+    const safeStock = Math.max(0, stock);
+    const target = products.find((p) => p.id === id);
     setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, stock: Math.max(0, stock) } : p))
+      prev.map((p) => (p.id === id ? { ...p, stock: safeStock } : p))
     );
+    if (target && settings.lowStockAlerts && safeStock <= target.lowStockThreshold) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      emitFcmAlert({
+        id: `notif_low_${Date.now()}`,
+        type: 'LOW_STOCK',
+        channelId: 'low-stock',
+        title: `Low Stock Alert · ${target.name}`,
+        body:
+          safeStock === 0
+            ? 'Out of stock (0 units left)! Restock immediately.'
+            : `Only ${safeStock} unit${safeStock === 1 ? '' : 's'} left (threshold: ${target.lowStockThreshold}). Tap to restock.`,
+        referenceId: target.id,
+        priority: 'HIGH',
+        read: false,
+        timestamp: time,
+      });
+    }
   };
 
   const handleUpdateOrderStatus = (
@@ -162,6 +328,7 @@ export default function App() {
       hour: '2-digit',
       minute: '2-digit',
     });
+    const targetOrder = orders.find((o) => o.id === orderId);
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
@@ -183,6 +350,20 @@ export default function App() {
           : o
       )
     );
+    if (settings.orderStatusAlerts && targetOrder) {
+      const cleanLabel = status.replace(/_/g, ' ');
+      emitFcmAlert({
+        id: `notif_st_${Date.now()}`,
+        type: 'ORDER_STATUS',
+        channelId: 'order-status',
+        title: `Order #${orderId} → ${cleanLabel}`,
+        body: `${targetOrder.customerName}'s order (${targetOrder.items[0]?.name || 'Item'}) is now ${cleanLabel}.`,
+        referenceId: orderId,
+        priority: status === 'DELIVERED' || status === 'REJECTED' ? 'HIGH' : 'DEFAULT',
+        read: false,
+        timestamp: time,
+      });
+    }
   };
 
   const handleAssignDelivery = (
@@ -195,6 +376,54 @@ export default function App() {
         o.id === orderId ? { ...o, riderName, courierName } : o
       )
     );
+  };
+
+  const handleConfirmUpiPayment = (
+    orderId: string,
+    utr: string,
+    vpaUsed: string
+  ) => {
+    const time = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const targetOrder = orders.find((o) => o.id === orderId);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              paymentMethod: 'In-Store UPI QR',
+              upiPaymentStatus: 'PAID_UPI_QR',
+              upiUtr: utr,
+              upiVpaUsed: vpaUsed,
+              upiPaidAt: `Today, ${time}`,
+              trackingHistory: [
+                ...o.trackingHistory,
+                {
+                  status: 'UPI_QR_PAID',
+                  location: shopProfile.city,
+                  timestamp: `Today, ${time}`,
+                  note: `In-store UPI QR payment recorded (Demo) · UTR: ${utr} · VPA: ${vpaUsed}`,
+                },
+              ],
+            }
+          : o
+      )
+    );
+    if (settings.orderStatusAlerts && targetOrder) {
+      emitFcmAlert({
+        id: `notif_upi_${Date.now()}`,
+        type: 'ORDER_STATUS',
+        channelId: 'order-status',
+        title: `UPI QR Received · ₹${targetOrder.subtotalInr.toLocaleString('en-IN')}`,
+        body: `Order #${orderId} paid via counter UPI QR (UTR: ${utr}).`,
+        referenceId: orderId,
+        priority: 'HIGH',
+        read: false,
+        timestamp: time,
+      });
+    }
   };
 
   const handleSwitchPlanDemo = (planId: 'starter' | 'growth' | 'enterprise') => {
@@ -244,6 +473,30 @@ export default function App() {
         timestamp: time,
       },
     ]);
+  };
+
+  const handleReplyToReview = (reviewId: string, replyText: string) => {
+    const time = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setReviews((prev) =>
+      prev.map((r) =>
+        r.id === reviewId
+          ? {
+              ...r,
+              sellerReply: replyText,
+              sellerRepliedAt: `Today, ${time}`,
+              status: 'REPLIED',
+            }
+          : r
+      )
+    );
+    void publishSellerReviewReplyIfAuthenticated({
+      tenantId: 'sanjit_musical_guwahati',
+      reviewId,
+      sellerReply: replyText,
+    }).catch(() => {});
   };
 
   // Back Stack Navigation
@@ -333,6 +586,10 @@ export default function App() {
         return { title: 'Withdrawal Requests', subtitle: 'Demo Payout Simulator' };
       return { title: 'Earnings', subtitle: `${activePlan.name} · Demo Ledger` };
     }
+    if (profileSubScreen === 'NOTIFICATIONS')
+      return { title: 'FCM Push Alerts', subtitle: 'Orders · Status · Low Stock' };
+    if (profileSubScreen === 'FEEDBACK')
+      return { title: 'Customer Feedback', subtitle: `${reviews.length} store & product reviews` };
     if (profileSubScreen === 'CHAT')
       return { title: 'Customer Chat', subtitle: shopProfile.shopName };
     if (profileSubScreen === 'DELIVERY')
@@ -350,6 +607,8 @@ export default function App() {
   const totalCommission = validOrders.reduce((s, o) => s + o.commissionInr, 0);
   const netEarnings = grossSales - totalCommission;
   const newOrdersCount = orders.filter((o) => o.status === 'NEW').length;
+  const unreadAlertsCount = notifications.filter((n) => !n.read).length;
+  const pendingReviewCount = reviews.filter((r) => r.status === 'PENDING_REPLY').length;
   const lowStockProducts = products.filter(
     (p) => p.stock <= p.lowStockThreshold
   );
@@ -381,7 +640,25 @@ export default function App() {
             subtitle={header.subtitle}
             onBack={canGoBack ? handleBack : undefined}
             rightAction={
-              <div className="flex flex-row items-center gap-1">
+              <div className="flex flex-row items-center gap-0.5">
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    aria-label="Open FCM Push Alerts"
+                    onClick={() => {
+                      setActiveTab('PROFILE');
+                      setProfileSubScreen('NOTIFICATIONS');
+                    }}
+                    className="relative min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center text-amber-300 hover:bg-white/10 active:scale-95 cursor-pointer"
+                  >
+                    <Bell className="w-4 h-4" />
+                    {unreadAlertsCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 min-w-[15px] h-[15px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center leading-none">
+                        {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {isAuthenticated && (
                   <button
                     type="button"
@@ -614,6 +891,20 @@ export default function App() {
                         <span className="truncate">Customer Chat</span>
                       </TouchableOpacity>
                     </div>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setActiveTab('PROFILE');
+                        setProfileSubScreen('FEEDBACK');
+                      }}
+                      className="w-full bg-purple-50 dark:bg-purple-950/80 text-purple-900 dark:text-amber-300 border border-purple-200 dark:border-purple-800 font-bold text-xs"
+                    >
+                      <Star className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span className="truncate">
+                        {pendingReviewCount > 0
+                          ? `Customer Feedback (${pendingReviewCount} awaiting reply)`
+                          : 'Customer Feedback & Reviews'}
+                      </span>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Low Stock Spotlight */}
@@ -738,9 +1029,12 @@ export default function App() {
                 <PartnerOrdersModule
                   orders={orders}
                   customers={customers}
+                  shopName={shopProfile.shopName}
+                  shopUpiId={shopProfile.upiId}
                   subView={orderSubView}
                   onSetSubView={setOrderSubView}
                   onUpdateOrderStatus={handleUpdateOrderStatus}
+                  onConfirmUpiPayment={handleConfirmUpiPayment}
                   onOpenChat={() => {
                     setActiveTab('PROFILE');
                     setProfileSubScreen('CHAT');
@@ -767,6 +1061,7 @@ export default function App() {
                   subScreen={financeSubScreen}
                   onSetSubScreen={setFinanceSubScreen}
                   orders={orders}
+                  products={products}
                   shopProfile={shopProfile}
                   plans={plans}
                   subscriptionPayments={subscriptionPayments}
@@ -776,8 +1071,63 @@ export default function App() {
                 />
               )}
 
-              {/* Screens 19, 20, 21, 22 + APK Guide (Profile Tab) */}
-              {activeTab === 'PROFILE' && (
+              {/* Screens 19, 20, 21, 22 + FCM Notifications + APK Guide (Profile Tab) */}
+              {activeTab === 'PROFILE' && profileSubScreen === 'NOTIFICATIONS' && (
+                <PartnerNotificationCenter
+                  notifications={notifications}
+                  settings={settings}
+                  fcmToken={fcmToken}
+                  fcmSyncedAt={fcmSyncedAt}
+                  onUpdateSettings={(u) =>
+                    setSettings((prev) => ({ ...prev, ...u }))
+                  }
+                  onRefreshToken={handleRefreshFcmToken}
+                  onMarkAllRead={() =>
+                    setNotifications((prev) =>
+                      prev.map((n) => ({ ...n, read: true }))
+                    )
+                  }
+                  onOpenNotification={handleOpenNotification}
+                  onSimulateNewOrder={handleSimulateNewOrderFcm}
+                  onSimulateStatusUpdate={() => {
+                    const first = orders[0];
+                    if (!first) return;
+                    const nextStatus: DemoOrderStatus =
+                      first.status === 'NEW'
+                        ? 'ACCEPTED'
+                        : first.status === 'ACCEPTED'
+                        ? 'PACKED'
+                        : first.status === 'PACKED'
+                        ? 'SHIPPED'
+                        : first.status === 'SHIPPED'
+                        ? 'OUT_FOR_DELIVERY'
+                        : 'DELIVERED';
+                    handleUpdateOrderStatus(first.id, nextStatus);
+                  }}
+                  onSimulateLowStock={() => {
+                    const lowTarget =
+                      products.find((p) => p.stock <= p.lowStockThreshold) ||
+                      products[0];
+                    if (!lowTarget) return;
+                    handleUpdateStock(
+                      lowTarget.id,
+                      Math.min(lowTarget.stock, Math.max(1, lowTarget.lowStockThreshold - 1))
+                    );
+                  }}
+                />
+              )}
+
+              {activeTab === 'PROFILE' && profileSubScreen === 'FEEDBACK' && (
+                <PartnerCustomerFeedback
+                  reviews={reviews}
+                  shopName={shopProfile.shopName}
+                  onReplyToReview={handleReplyToReview}
+                />
+              )}
+
+              {activeTab === 'PROFILE' &&
+                profileSubScreen !== 'NOTIFICATIONS' &&
+                profileSubScreen !== 'FEEDBACK' && (
                 <PartnerProfileScreens
                   subScreen={profileSubScreen}
                   onSetSubScreen={setProfileSubScreen}
@@ -785,6 +1135,7 @@ export default function App() {
                   settings={settings}
                   orders={orders}
                   messages={messages}
+                  pendingReviewCount={pendingReviewCount}
                   onUpdateProfile={(u) =>
                     setShopProfile((prev) => ({ ...prev, ...u }))
                   }
@@ -806,6 +1157,13 @@ export default function App() {
                 />
               )}
             </main>
+
+            {/* Real-Time FCM Heads-Up Notification Banner */}
+            <FcmHeadsUpBanner
+              notification={activeBanner}
+              onDismiss={() => setActiveBanner(null)}
+              onOpen={handleOpenNotification}
+            />
 
             {/* Exact 5 Mobile Bottom Navigation Tabs: Home, Orders, Products, Earnings, Profile */}
             <nav

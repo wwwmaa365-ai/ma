@@ -42,7 +42,11 @@ export interface DemoOrder {
   subtotalInr: number;
   commissionInr: number;
   netEarningInr: number;
-  paymentMethod: 'Demo UPI' | 'Demo Card' | 'Cash on Delivery';
+  paymentMethod: 'Demo UPI' | 'Demo Card' | 'Cash on Delivery' | 'In-Store UPI QR';
+  upiPaymentStatus?: 'PENDING' | 'PAID_UPI_QR';
+  upiUtr?: string;
+  upiPaidAt?: string;
+  upiVpaUsed?: string;
   status: DemoOrderStatus;
   deliveryOtp: string;
   courierName: string;
@@ -118,13 +122,66 @@ export interface DemoShopProfile {
   activePlanId: 'starter' | 'growth' | 'enterprise';
 }
 
+export type DemoFcmChannelId = 'order-alerts' | 'order-status' | 'low-stock';
+
+export type DemoNotificationType = 'NEW_ORDER' | 'ORDER_STATUS' | 'LOW_STOCK';
+
+export interface DemoNotificationItem {
+  id: string;
+  type: DemoNotificationType;
+  channelId: DemoFcmChannelId;
+  title: string;
+  body: string;
+  referenceId: string;
+  priority: 'HIGH' | 'DEFAULT';
+  read: boolean;
+  timestamp: string;
+}
+
 export interface DemoPartnerSettings {
   pushOrderAlerts: boolean;
+  orderStatusAlerts: boolean;
   lowStockAlerts: boolean;
   codEnabled: boolean;
   autoAcceptOrders: boolean;
   vacationMode: boolean;
 }
+
+export const INITIAL_DEMO_NOTIFICATIONS: DemoNotificationItem[] = [
+  {
+    id: 'notif_ord_1001',
+    type: 'NEW_ORDER',
+    channelId: 'order-alerts',
+    title: 'New Order #ORD-1001 · ₹24,999',
+    body: 'Ananya Borgohain ordered 1× Yamaha Acoustic Guitar F310 (Demo UPI). Tap to accept.',
+    referenceId: 'ORD-1001',
+    priority: 'HIGH',
+    read: false,
+    timestamp: '2 mins ago',
+  },
+  {
+    id: 'notif_stock_tabla',
+    type: 'LOW_STOCK',
+    channelId: 'low-stock',
+    title: 'Low Stock Alert · Professional Copper Tabla Set',
+    body: 'Only 2 units left (threshold: 3). Restock soon to avoid missing orders.',
+    referenceId: 'prod_tabla',
+    priority: 'HIGH',
+    read: false,
+    timestamp: '14 mins ago',
+  },
+  {
+    id: 'notif_status_1002',
+    type: 'ORDER_STATUS',
+    channelId: 'order-status',
+    title: 'Order #ORD-1002 → PACKED',
+    body: 'Bharatanatyam Silk Costume Set is packed and ready for Shiprocket pickup.',
+    referenceId: 'ORD-1002',
+    priority: 'DEFAULT',
+    read: true,
+    timestamp: '1 hr ago',
+  },
+];
 
 export const APP_ICON_URL = '/src/assets/images/app_icon_sanjit_partner_1795067998809.jpg';
 
@@ -605,13 +662,13 @@ export const INITIAL_DEMO_CHAT: DemoChatMessage[] = [
 ];
 
 export const WEEKLY_DEMO_SALES = [
-  { label: 'Mon', salesInr: 8400 },
-  { label: 'Tue', salesInr: 12900 },
-  { label: 'Wed', salesInr: 6500 },
-  { label: 'Thu', salesInr: 19400 },
-  { label: 'Fri', salesInr: 14200 },
-  { label: 'Sat', salesInr: 26800 },
-  { label: 'Sun', salesInr: 21500 },
+  { label: 'Mon', salesInr: 8400, orders: 4 },
+  { label: 'Tue', salesInr: 12900, orders: 6 },
+  { label: 'Wed', salesInr: 6500, orders: 3 },
+  { label: 'Thu', salesInr: 19400, orders: 8 },
+  { label: 'Fri', salesInr: 14200, orders: 6 },
+  { label: 'Sat', salesInr: 26800, orders: 11 },
+  { label: 'Sun', salesInr: 21500, orders: 9 },
 ];
 
 export const INITIAL_DEMO_PROFILE: DemoShopProfile = {
@@ -628,3 +685,148 @@ export const INITIAL_DEMO_PROFILE: DemoShopProfile = {
   bankAccountMasked: 'SBI •••• 4821 (IFSC: SBIN0004122)',
   activePlanId: 'growth',
 };
+
+export type DemoReviewScope = 'STORE' | 'PRODUCT';
+export type DemoReviewStatus = 'PENDING_REPLY' | 'REPLIED';
+
+export interface DemoCustomerReview {
+  id: string;
+  scope: DemoReviewScope;
+  productId: string;
+  productName: string;
+  orderRef: string;
+  customerId: string;
+  customerName: string;
+  customerCity: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  sellerReply?: string;
+  sellerRepliedAt?: string;
+  status: DemoReviewStatus;
+  verifiedPurchase: boolean;
+}
+
+export const INITIAL_DEMO_REVIEWS: DemoCustomerReview[] = [
+  {
+    id: 'rev_501',
+    scope: 'PRODUCT',
+    productId: 'prod_01',
+    productName: 'Acoustic Dreadnought Guitar (Solid Spruce)',
+    orderRef: 'ORD-5101',
+    customerId: 'cust_01',
+    customerName: 'Ananya Borgohain',
+    customerCity: 'Guwahati',
+    rating: 5,
+    comment:
+      'Rich spruce resonance right out of the box and the truss rod setup was already stage-ready. Padded gig bag feels sturdy for daily classes.',
+    createdAt: 'Today, 11:20 AM',
+    status: 'PENDING_REPLY',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_502',
+    scope: 'STORE',
+    productId: 'store_overall',
+    productName: 'Sanjit Musical & Dance Emporium (Store)',
+    orderRef: 'ORD-5104',
+    customerId: 'cust_03',
+    customerName: 'Debashish Baruah',
+    customerCity: 'Dibrugarh',
+    rating: 4,
+    comment:
+      'Very knowledgeable staff who helped us pick the right Muga Bihu costume size over chat. Packaging was neat, though Shiprocket took one extra day.',
+    createdAt: 'Today, 09:05 AM',
+    status: 'PENDING_REPLY',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_503',
+    scope: 'PRODUCT',
+    productId: 'prod_08',
+    productName: '4-Channel Pro Club DJ Mixer & USB Interface',
+    orderRef: 'ORD-5103',
+    customerId: 'cust_02',
+    customerName: 'Rohan Kulkarni',
+    customerCity: 'Shillong',
+    rating: 3,
+    comment:
+      'Mixer channels and FX bank perform well for our club gig, but the box did not include a printed quick-start guide for USB routing.',
+    createdAt: 'Yesterday',
+    status: 'PENDING_REPLY',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_504',
+    scope: 'PRODUCT',
+    productId: 'prod_04',
+    productName: 'Concert Brass Bayan & Sheesham Tabla Set',
+    orderRef: 'ORD-5098',
+    customerId: 'cust_04',
+    customerName: 'Meenakshi Iyer',
+    customerCity: 'Silchar',
+    rating: 5,
+    comment:
+      'Authentic concert tone on the sheesham dayan and heavy copper-brass bayan. Tuning hammer and cushions arrived safely wrapped.',
+    createdAt: '2 days ago',
+    sellerReply:
+      'Namaskar Meenakshi ji! Thank you for trusting Sanjit Musical Store. Wishing you wonderful concert recitals ahead—reach out anytime for re-skinning or tuning tips.',
+    sellerRepliedAt: '2 days ago',
+    status: 'REPLIED',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_505',
+    scope: 'PRODUCT',
+    productId: 'prod_12',
+    productName: 'Kanchipuram Silk Bharatanatyam Dance Dress',
+    orderRef: 'ORD-5095',
+    customerId: 'cust_05',
+    customerName: 'Priyanka Sharma',
+    customerCity: 'Jorhat',
+    rating: 5,
+    comment:
+      'The purple and gold zari border looked stunning under stage lights during our arangetram. Fan pleats open cleanly during araimandi.',
+    createdAt: '4 days ago',
+    sellerReply:
+      'Thank you so much Priyanka ji! Delighted to hear the zari costume shone during your arangetram performance.',
+    sellerRepliedAt: '3 days ago',
+    status: 'REPLIED',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_506',
+    scope: 'STORE',
+    productId: 'store_overall',
+    productName: 'Sanjit Musical & Dance Emporium (Store)',
+    orderRef: 'ORD-5089',
+    customerId: 'cust_06',
+    customerName: 'Arjun Hazarika',
+    customerCity: 'Tezpur',
+    rating: 5,
+    comment:
+      'Fast counter UPI QR checkout and genuine GST invoice for our school music department bulk purchase. Best musical store in Assam.',
+    createdAt: '5 days ago',
+    status: 'PENDING_REPLY',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev_507',
+    scope: 'PRODUCT',
+    productId: 'prod_15',
+    productName: '100+100 Brass Bell Velvet Pad Ghungroo Pair',
+    orderRef: 'ORD-5082',
+    customerId: 'cust_01',
+    customerName: 'Ananya Borgohain',
+    customerCity: 'Guwahati',
+    rating: 4,
+    comment:
+      'Crisp brass bell tone and very comfortable velvet padding for 2-hour Kathak practice sessions.',
+    createdAt: '1 week ago',
+    sellerReply:
+      'Glad you love the velvet cushioning and bell tone, Ananya ji! Keep shining on stage.',
+    sellerRepliedAt: '6 days ago',
+    status: 'REPLIED',
+    verifiedPurchase: true,
+  },
+];

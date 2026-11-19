@@ -57,6 +57,28 @@ service cloud.firestore {
         data.createdAt is timestamp;
     }
 
+    function isValidDeviceFcmToken(data) {
+      return data.keys().hasAll([
+          'tokenId', 'uid', 'tenantId', 'fcmToken', 'platform',
+          'deviceName', 'channels', 'enabled', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'tokenId', 'uid', 'tenantId', 'fcmToken', 'platform',
+          'deviceName', 'channels', 'enabled', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.tokenId) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        isValidId(data.tenantId) &&
+        data.fcmToken is string && data.fcmToken.size() >= 16 && data.fcmToken.size() <= 512 &&
+        data.platform in ['android', 'ios', 'web'] &&
+        data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 120 &&
+        data.channels is list && data.channels.size() >= 1 && data.channels.size() <= 5 && data.channels[0] is string &&
+        data.enabled is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
     function isValidTenant(data) {
       return data.keys().hasAll([
           'tenantId', 'ownerId', 'storeName', 'customDomain',
@@ -144,6 +166,59 @@ service cloud.firestore {
         data.createdAt is timestamp;
     }
 
+    function isValidSellerNotification(data) {
+      return data.keys().hasAll([
+          'notificationId', 'tenantId', 'recipientUid', 'type',
+          'channelId', 'title', 'body', 'referenceId',
+          'priority', 'read', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'notificationId', 'tenantId', 'recipientUid', 'type',
+          'channelId', 'title', 'body', 'referenceId',
+          'priority', 'read', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.notificationId) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.recipientUid) &&
+        data.type in ['NEW_ORDER', 'ORDER_STATUS', 'LOW_STOCK'] &&
+        data.channelId in ['order-alerts', 'order-status', 'low-stock'] &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.body is string && data.body.size() >= 2 && data.body.size() <= 400 &&
+        isValidId(data.referenceId) &&
+        data.priority in ['HIGH', 'DEFAULT'] &&
+        data.read is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCustomerReview(data) {
+      return data.keys().hasAll([
+          'reviewId', 'tenantId', 'sellerOwnerId', 'customerId', 'customerName',
+          'scope', 'productId', 'productName', 'orderRef', 'rating',
+          'comment', 'sellerReply', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'reviewId', 'tenantId', 'sellerOwnerId', 'customerId', 'customerName',
+          'scope', 'productId', 'productName', 'orderRef', 'rating',
+          'comment', 'sellerReply', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.reviewId) &&
+        isValidId(data.tenantId) &&
+        isValidId(data.sellerOwnerId) &&
+        isValidId(data.customerId) &&
+        data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 80 &&
+        data.scope in ['STORE', 'PRODUCT'] &&
+        isValidId(data.productId) &&
+        data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 140 &&
+        data.orderRef is string && data.orderRef.size() >= 1 && data.orderRef.size() <= 64 && data.orderRef.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        data.comment is string && data.comment.size() >= 1 && data.comment.size() <= 1000 &&
+        data.sellerReply is string && data.sellerReply.size() <= 1000 &&
+        data.status in ['PENDING_REPLY', 'REPLIED'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
     // Trusted Admin Registry
     match /admins/{adminId} {
       allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
@@ -194,6 +269,40 @@ service cloud.firestore {
             (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'address']))
           );
         allow delete: if isAdmin() && isValidId(userId) && isValidId(docId);
+      }
+
+      // Owner-Isolated FCM Device Push Token Subcollection
+      match /fcmTokens/{tokenId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(tokenId) && (isOwner(userId) || isAdmin()) &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow list: if isSignedIn() && isValidId(userId) && existing().uid == request.auth.uid;
+        allow create: if isSignedIn() &&
+          isValidId(userId) &&
+          isValidId(tokenId) &&
+          isOwner(userId) &&
+          isValidDeviceFcmToken(incoming()) &&
+          incoming().tokenId == tokenId &&
+          incoming().uid == userId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isSignedIn() &&
+          isValidId(userId) &&
+          isValidId(tokenId) &&
+          isValidDeviceFcmToken(incoming()) &&
+          incoming().tokenId == existing().tokenId &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/users/$(userId)) && (
+            isAdmin() ||
+            (isOwner(userId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['fcmToken', 'deviceName', 'channels', 'enabled', 'updatedAt']))
+          );
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(tokenId) && (
+          isAdmin() ||
+          (isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId)))
+        );
       }
     }
 
@@ -355,6 +464,109 @@ service cloud.firestore {
               incoming().diff(existing()).affectedKeys().hasOnly(['flagged']))
           );
         allow delete: if isAdmin() && isValidId(tenantId) && isValidId(messageId);
+      }
+
+      // Tenant Real-Time FCM Seller Notifications (Orders, Status Changes, Low Stock)
+      match /notifications/{notificationId} {
+        allow get: if isSignedIn() && isValidId(tenantId) && isValidId(notificationId) && (
+          isAdmin() ||
+          (existing().recipientUid == request.auth.uid &&
+            get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid)
+        );
+        allow list: if isSignedIn() && isValidId(tenantId) &&
+          existing().tenantId == tenantId &&
+          existing().recipientUid == request.auth.uid;
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(notificationId) &&
+          isValidSellerNotification(incoming()) &&
+          incoming().notificationId == notificationId &&
+          incoming().tenantId == tenantId &&
+          incoming().recipientUid == request.auth.uid &&
+          incoming().read == false &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid;
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(notificationId) &&
+          isValidSellerNotification(incoming()) &&
+          incoming().notificationId == existing().notificationId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().recipientUid == existing().recipientUid &&
+          incoming().type == existing().type &&
+          incoming().channelId == existing().channelId &&
+          incoming().title == existing().title &&
+          incoming().body == existing().body &&
+          incoming().referenceId == existing().referenceId &&
+          incoming().priority == existing().priority &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            // Action: Seller marks unread notification as read (Terminal Lock once read == true)
+            (existing().recipientUid == request.auth.uid &&
+              existing().read == false &&
+              incoming().read == true &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']) &&
+              get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid)
+          );
+        allow delete: if isAdmin() && isValidId(tenantId) && isValidId(notificationId);
+      }
+
+      // Tenant Store & Product Customer Reviews with Verified Seller Responses
+      match /reviews/{reviewId} {
+        allow get: if isValidId(tenantId) && isValidId(reviewId) && (
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.status == 'active' ||
+          (isSignedIn() && (
+            existing().sellerOwnerId == request.auth.uid ||
+            existing().customerId == request.auth.uid ||
+            isAdmin()
+          ))
+        );
+        allow list: if isSignedIn() && isValidId(tenantId) &&
+          existing().tenantId == tenantId && (
+            existing().sellerOwnerId == request.auth.uid ||
+            existing().customerId == request.auth.uid
+          );
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(reviewId) &&
+          isValidCustomerReview(incoming()) &&
+          incoming().reviewId == reviewId &&
+          incoming().tenantId == tenantId &&
+          incoming().customerId == request.auth.uid &&
+          incoming().sellerReply == '' &&
+          incoming().status == 'PENDING_REPLY' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == incoming().sellerOwnerId &&
+          get(/databases/$(database)/documents/tenants/$(tenantId)).data.status == 'active';
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(reviewId) &&
+          isValidCustomerReview(incoming()) &&
+          incoming().reviewId == existing().reviewId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().sellerOwnerId == existing().sellerOwnerId &&
+          incoming().customerId == existing().customerId &&
+          incoming().customerName == existing().customerName &&
+          incoming().scope == existing().scope &&
+          incoming().productId == existing().productId &&
+          incoming().productName == existing().productName &&
+          incoming().orderRef == existing().orderRef &&
+          incoming().rating == existing().rating &&
+          incoming().comment == existing().comment &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            // Action: Verified Seller publishes or updates response to customer review
+            (existing().sellerOwnerId == request.auth.uid &&
+              incoming().sellerReply.size() >= 2 &&
+              incoming().status == 'REPLIED' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['sellerReply', 'status', 'updatedAt']) &&
+              get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid)
+          );
+        allow delete: if isAdmin() && isValidId(tenantId) && isValidId(reviewId);
       }
     }
   }

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import {
   DemoOrder,
+  DemoPartnerProduct,
   DemoShopProfile,
   DemoSubscriptionPayment,
   DemoSubscriptionPlan,
@@ -24,6 +25,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from '../rn/ReactNativePrimitives.tsx';
+import { PartnerEarningsCharts } from './PartnerEarningsCharts.tsx';
 
 export type FinanceSubScreen =
   | 'EARNINGS'
@@ -37,6 +39,7 @@ export interface PartnerFinanceScreensProps {
   subScreen: FinanceSubScreen;
   onSetSubScreen: (screen: FinanceSubScreen) => void;
   orders: DemoOrder[];
+  products: DemoPartnerProduct[];
   shopProfile: DemoShopProfile;
   plans: DemoSubscriptionPlan[];
   subscriptionPayments: DemoSubscriptionPayment[];
@@ -49,6 +52,7 @@ export const PartnerFinanceScreens: React.FC<PartnerFinanceScreensProps> = ({
   subScreen,
   onSetSubScreen,
   orders,
+  products,
   shopProfile,
   plans,
   subscriptionPayments,
@@ -79,82 +83,22 @@ export const PartnerFinanceScreens: React.FC<PartnerFinanceScreensProps> = ({
 
   // Screen 13: Sales Reports
   if (subScreen === 'SALES_REPORTS') {
-    const maxSales = Math.max(...WEEKLY_DEMO_SALES.map((d) => d.salesInr), 1);
     const weekTotal = WEEKLY_DEMO_SALES.reduce((s, d) => s + d.salesInr, 0);
     return (
       <ScrollView contentContainerClassName="px-3.5 pt-3 pb-24 gap-3.5">
-        <DemoDisclaimer text="Demo Sales Analytics — Sample 7-day sales data for preview testing." />
-
-        <View className="w-full bg-white dark:bg-[#1E1136] rounded-2xl p-4 border border-purple-100 dark:border-purple-900/60 gap-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-slate-500 dark:text-purple-300">
-              7-Day Demo Gross Revenue
-            </span>
-            <span className="text-2xl font-extrabold text-purple-950 dark:text-amber-300 font-mono-tabular">
-              ₹{weekTotal.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[11px] text-slate-500 dark:text-purple-300 mt-0.5">
-              Top Performers: DJ Mixers, Bihu Costumes & Acoustic Guitars
-            </span>
-          </div>
-
-          {/* Mobile Responsive Bar Chart (No horizontal overflow) */}
-          <div className="w-full h-40 pt-4 flex flex-row items-end justify-between gap-1.5">
-            {WEEKLY_DEMO_SALES.map((bar) => {
-              const heightPct = Math.max(
-                16,
-                Math.round((bar.salesInr / maxSales) * 100)
-              );
-              return (
-                <div
-                  key={bar.label}
-                  className="flex-1 h-full flex flex-col items-center justify-end gap-1.5 min-w-0"
-                >
-                  <span className="text-[9px] font-mono-tabular text-slate-500 dark:text-purple-300">
-                    {(bar.salesInr / 1000).toFixed(1)}k
-                  </span>
-                  <div className="w-full max-w-[28px] flex-1 bg-purple-100 dark:bg-purple-950/80 rounded-lg flex items-end overflow-hidden">
-                    <div
-                      style={{ height: `${heightPct}%` }}
-                      className="w-full bg-gradient-to-t from-[#4C1D95] to-amber-500 rounded-lg"
-                    />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-purple-200">
-                    {bar.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        <DemoDisclaimer text="Demo Sales Analytics — Interactive sales trends, order volume, and category revenue mix." />
+        <View className="w-full rounded-2xl bg-gradient-to-br from-[#3B0764] to-[#5B21B6] p-4 text-white border border-amber-400/30 gap-1">
+          <span className="text-[10px] font-bold tracking-wider text-amber-300">
+            7-DAY DEMO GROSS REVENUE
+          </span>
+          <span className="text-2xl font-extrabold font-mono-tabular text-white">
+            ₹{weekTotal.toLocaleString('en-IN')}
+          </span>
+          <span className="text-[11px] text-purple-200">
+            Tap any day point or bar below to inspect daily figures
+          </span>
         </View>
-
-        <View className="w-full bg-white dark:bg-[#1E1136] rounded-2xl p-3.5 border border-purple-100 dark:border-purple-900/60 gap-2">
-          <Text className="text-xs font-bold text-slate-900 dark:text-white">
-            Category Revenue Mix (Demo)
-          </Text>
-          {[
-            { label: 'Electronic Equipment (DJ Mixer, Amp, Speakers)', pct: 46 },
-            { label: 'Musical Instruments (Guitar, Piano, Tabla)', pct: 32 },
-            { label: 'Dance Dresses & Ghungroo Accessories', pct: 22 },
-          ].map((row) => (
-            <div key={row.label} className="flex flex-col gap-1">
-              <div className="flex flex-row justify-between text-[11px]">
-                <span className="text-slate-700 dark:text-purple-200 truncate pr-2">
-                  {row.label}
-                </span>
-                <span className="font-mono-tabular font-bold text-purple-900 dark:text-amber-300 shrink-0">
-                  {row.pct}%
-                </span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-purple-100 dark:bg-purple-950 overflow-hidden">
-                <div
-                  style={{ width: `${row.pct}%` }}
-                  className="h-full bg-[#4C1D95] dark:bg-amber-400 rounded-full"
-                />
-              </div>
-            </div>
-          ))}
-        </View>
+        <PartnerEarningsCharts orders={orders} products={products} />
       </ScrollView>
     );
   }
@@ -464,6 +408,9 @@ export const PartnerFinanceScreens: React.FC<PartnerFinanceScreensProps> = ({
           <span>Request Payout Withdrawal (Demo)</span>
         </TouchableOpacity>
       </View>
+
+      {/* Interactive Charts directly on the Earnings Tab */}
+      <PartnerEarningsCharts orders={orders} products={products} />
 
       {/* Native Android Tap-List for All Finance & Subscription Screens */}
       <View className="w-full bg-white dark:bg-[#1E1136] rounded-2xl border border-purple-100 dark:border-purple-900/60 divide-y divide-purple-100 dark:divide-purple-900/50 overflow-hidden">
