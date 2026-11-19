@@ -44,10 +44,13 @@ jobs:
           echo "$SDK_DIR/platform-tools" >> "$GITHUB_PATH"
           SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
 
       - name: Install Expo & React Native dependencies
         run: npm install --legacy-peer-deps
+
+      - name: Verify Expo native dependency alignment
+        run: CI=1 npx expo install --check
 
       - name: Verify TypeScript compilation
         run: npx tsc --noEmit
@@ -56,7 +59,7 @@ jobs:
         run: npx expo config --type public
 
       - name: Generate native Android project via Expo Prebuild
-        run: npx expo prebuild --platform android --clean --non-interactive
+        run: CI=1 npx expo prebuild --platform android --clean
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v4
@@ -64,7 +67,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties', 'package.json') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -73,13 +76,15 @@ jobs:
 
       - name: Compile Android APK (Gradle)
         working-directory: android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
         run: |
           VARIANT="${{ github.event.inputs.build_variant || 'release' }}"
           if [ "$VARIANT" = "debug" ]; then
-            ./gradlew assembleDebug --no-daemon
+            ./gradlew assembleDebug --no-daemon --stacktrace
             cp app/build/outputs/apk/debug/app-debug.apk ../SanjitShopPartner-v1.0.0-debug.apk
           else
-            ./gradlew assembleRelease --no-daemon
+            ./gradlew assembleRelease --no-daemon --stacktrace
             cp app/build/outputs/apk/release/app-release.apk ../SanjitShopPartner-v1.0.0-release.apk
           fi
 
